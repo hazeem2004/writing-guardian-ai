@@ -1,27 +1,59 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { TextInput } from "@/components/TextInput";
 import { ActionButtons } from "@/components/ActionButtons";
 import { ResultsPanel } from "@/components/ResultsPanel";
-import { FileText, Shield, Sparkles } from "lucide-react";
+import { FileText, Shield, Sparkles, LogOut } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
+
+interface Citation {
+  mla: string;
+  apa: string;
+}
+
+interface MatchedSegment {
+  text: string;
+  citation?: Citation;
+}
 
 const Index = () => {
-  interface Citation {
-    mla: string;
-    apa: string;
-  }
-
-  interface MatchedSegment {
-    text: string;
-    citation?: Citation;
-  }
-
+  const navigate = useNavigate();
+  const [session, setSession] = useState<Session | null>(null);
   const [inputText, setInputText] = useState("");
   const [transformedText, setTransformedText] = useState("");
   const [similarityScore, setSimilarityScore] = useState<number | undefined>(undefined);
   const [matchedSegments, setMatchedSegments] = useState<MatchedSegment[]>([]);
   const [paraphrasedSuggestions, setParaphrasedSuggestions] = useState<string[]>([]);
+
+  useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        setSession(session);
+        if (!session) {
+          navigate("/auth");
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      if (!session) {
+        navigate("/auth");
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate("/auth");
+  };
 
   const CITATION_THRESHOLD = 0.5; // Configurable threshold for citation assistance
 
@@ -105,6 +137,9 @@ const Index = () => {
       
       const { data, error } = await supabase.functions.invoke("paraphrase-text", {
         body: { text: inputText },
+        headers: {
+          Authorization: `Bearer ${session?.access_token}`,
+        },
       });
 
       if (error) {
@@ -129,6 +164,10 @@ const Index = () => {
     }
   };
 
+  if (!session) {
+    return null;
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-muted/30 to-background">
       {/* Header */}
@@ -151,6 +190,10 @@ const Index = () => {
                 <Shield className="h-4 w-4 text-primary" />
                 <span className="text-muted-foreground">Secure & Private</span>
               </div>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                <LogOut className="h-4 w-4 mr-2" />
+                Logout
+              </Button>
             </div>
           </div>
         </div>
