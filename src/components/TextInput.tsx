@@ -8,6 +8,9 @@ interface TextInputProps {
 }
 
 export const TextInput = ({ value, onChange, placeholder }: TextInputProps) => {
+  const MAX_LENGTH = 10000;
+  const isOverLimit = value.length > MAX_LENGTH;
+
   return (
     <div className="space-y-2">
       <Label htmlFor="text-input" className="text-sm font-medium">
@@ -21,9 +24,16 @@ export const TextInput = ({ value, onChange, placeholder }: TextInputProps) => {
         className="min-h-[300px] resize-none font-mono text-sm transition-all focus:ring-2 focus:ring-primary"
       />
       <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{value.length} characters</span>
+        <span className={isOverLimit ? "text-destructive font-medium" : ""}>
+          {value.length} / {MAX_LENGTH} characters
+        </span>
         <span>{value.split(/\s+/).filter(Boolean).length} words</span>
       </div>
+      {isOverLimit && (
+        <p className="text-xs text-destructive">
+          Text exceeds maximum length. Please reduce to {MAX_LENGTH} characters or less.
+        </p>
+      )}
     </div>
   );
 };

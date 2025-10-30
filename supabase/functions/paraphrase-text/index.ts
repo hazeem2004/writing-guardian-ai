@@ -18,6 +18,15 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Security: Enforce maximum text length to prevent resource exhaustion
+    const MAX_LENGTH = 10000;
+    if (text.length > MAX_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: `Text exceeds maximum length of ${MAX_LENGTH} characters` }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       console.error("LOVABLE_API_KEY is not configured");
@@ -104,8 +113,8 @@ Return your response as a JSON object with this structure:
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const errorText = await response.text();
-      console.error("AI gateway error:", response.status, errorText);
+      // Security: Log only status code, not full error details
+      console.error("AI gateway error:", response.status);
       return new Response(
         JSON.stringify({ error: "Failed to paraphrase text" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -113,12 +122,12 @@ Return your response as a JSON object with this structure:
     }
 
     const data = await response.json();
-    console.log("AI Response:", JSON.stringify(data));
+    // Security: Minimal logging - no user content
 
     // Extract the tool call result
     const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
-      console.error("No tool call in response");
+      console.error("Invalid AI response format");
       return new Response(
         JSON.stringify({ error: "Invalid AI response format" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -132,9 +141,10 @@ Return your response as a JSON object with this structure:
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in paraphrase-text function:", error);
+    // Security: Log error type only, not sensitive details
+    console.error("Paraphrase function error:", error instanceof Error ? error.name : "Unknown");
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: "An error occurred processing your request" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

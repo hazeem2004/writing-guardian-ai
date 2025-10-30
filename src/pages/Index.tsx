@@ -93,6 +93,13 @@ const Index = () => {
       return;
     }
 
+    // Security: Client-side validation for text length
+    const MAX_LENGTH = 10000;
+    if (inputText.length > MAX_LENGTH) {
+      toast.error(`Text exceeds maximum length of ${MAX_LENGTH} characters. Please reduce and try again.`);
+      return;
+    }
+
     try {
       toast.loading("Generating high-quality paraphrases...");
       
