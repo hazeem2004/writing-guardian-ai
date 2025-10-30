@@ -4,6 +4,7 @@ import { ActionButtons } from "@/components/ActionButtons";
 import { ResultsPanel } from "@/components/ResultsPanel";
 import { FileText, Shield, Sparkles } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
   interface Citation {
@@ -31,10 +32,13 @@ const Index = () => {
       return;
     }
 
-    // Simple humanization: remove forbidden symbols and clean up
+    // Remove forbidden symbols, emojis, and clean up
     const forbiddenChars = /[_\-':;/\\|]/g;
+    const emojiRegex = /[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F018}-\u{1F270}\u{238C}-\u{2454}\u{20D0}-\u{20FF}\u{FE00}-\u{FE0F}]/gu;
+    
     const humanized = inputText
       .replace(forbiddenChars, " ")
+      .replace(emojiRegex, "")
       .replace(/\s+/g, " ")
       .trim();
 
@@ -82,28 +86,40 @@ const Index = () => {
     toast.success("Plagiarism detection complete!");
   };
 
-  // Mock plagiarism removal (replace with actual paraphrasing)
-  const handleRemove = () => {
+  // Sophisticated plagiarism removal using LLM
+  const handleRemove = async () => {
     if (!inputText.trim()) {
       toast.error("Please enter some text first");
       return;
     }
 
-    // Simple paraphrase simulation
-    const paraphrased = inputText
-      .replace(/\bhowever\b/gi, "nevertheless")
-      .replace(/\bimportant\b/gi, "significant")
-      .replace(/\bshows\b/gi, "demonstrates");
+    try {
+      toast.loading("Generating high-quality paraphrases...");
+      
+      const { data, error } = await supabase.functions.invoke("paraphrase-text", {
+        body: { text: inputText },
+      });
 
-    setTransformedText(paraphrased);
-    setParaphrasedSuggestions([
-      "Consider using synonyms for repeated words",
-      "Restructure long sentences for better flow",
-      "Replace passive voice with active voice",
-    ]);
-    setSimilarityScore(0.15);
-    setMatchedSegments([]);
-    toast.success("Plagiarism removal suggestions generated!");
+      if (error) {
+        console.error("Edge function error:", error);
+        toast.error(error.message || "Failed to paraphrase text");
+        return;
+      }
+
+      if (!data) {
+        toast.error("No response from paraphrasing service");
+        return;
+      }
+
+      setTransformedText(data.paraphrased);
+      setParaphrasedSuggestions(data.suggestions || []);
+      setSimilarityScore(0.15);
+      setMatchedSegments([]);
+      toast.success(`Paraphrasing complete! Estimated ${data.similarity_reduction} similarity reduction.`);
+    } catch (error) {
+      console.error("Paraphrase error:", error);
+      toast.error("Failed to paraphrase text. Please try again.");
+    }
   };
 
   return (
