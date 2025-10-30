@@ -4,10 +4,20 @@ import { Button } from "@/components/ui/button";
 import { Copy, Download, AlertCircle, CheckCircle, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 
+interface Citation {
+  mla: string;
+  apa: string;
+}
+
+interface MatchedSegment {
+  text: string;
+  citation?: Citation;
+}
+
 interface ResultsPanelProps {
   transformedText: string;
   similarityScore?: number;
-  matchedSegments?: string[];
+  matchedSegments?: MatchedSegment[];
   paraphrasedSuggestions?: string[];
 }
 
@@ -31,6 +41,11 @@ export const ResultsPanel = ({
     a.click();
     URL.revokeObjectURL(url);
     toast.success("Downloaded successfully!");
+  };
+
+  const handleCopyCitation = (citation: string, format: string) => {
+    navigator.clipboard.writeText(citation);
+    toast.success(`${format} citation copied to clipboard!`);
   };
 
   const getSimilarityColor = (score: number) => {
@@ -122,10 +137,50 @@ export const ResultsPanel = ({
             <CardTitle>Matched Segments</CardTitle>
             <CardDescription>Similar content found in sources</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-4">
             {matchedSegments.map((segment, idx) => (
-              <div key={idx} className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm">
-                {segment}
+              <div key={idx} className="space-y-3">
+                <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm">
+                  {segment.text}
+                </div>
+                {segment.citation && (
+                  <div className="ml-4 space-y-2 rounded-md bg-accent/10 border border-accent/20 p-3">
+                    <div className="flex items-center gap-2 mb-2">
+                      <AlertCircle className="h-4 w-4 text-primary" />
+                      <span className="text-sm font-medium">Citation Assistance</span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-muted-foreground mb-1">MLA Format</p>
+                          <p className="text-xs font-mono">{segment.citation.mla}</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => handleCopyCitation(segment.citation!.mla, "MLA")}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex-1">
+                          <p className="text-xs font-medium text-muted-foreground mb-1">APA Format</p>
+                          <p className="text-xs font-mono">{segment.citation.apa}</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          className="h-8 w-8 shrink-0"
+                          onClick={() => handleCopyCitation(segment.citation!.apa, "APA")}
+                        >
+                          <Copy className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </CardContent>

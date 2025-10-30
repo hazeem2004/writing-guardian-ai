@@ -6,11 +6,23 @@ import { FileText, Shield, Sparkles } from "lucide-react";
 import { toast } from "sonner";
 
 const Index = () => {
+  interface Citation {
+    mla: string;
+    apa: string;
+  }
+
+  interface MatchedSegment {
+    text: string;
+    citation?: Citation;
+  }
+
   const [inputText, setInputText] = useState("");
   const [transformedText, setTransformedText] = useState("");
   const [similarityScore, setSimilarityScore] = useState<number | undefined>(undefined);
-  const [matchedSegments, setMatchedSegments] = useState<string[]>([]);
+  const [matchedSegments, setMatchedSegments] = useState<MatchedSegment[]>([]);
   const [paraphrasedSuggestions, setParaphrasedSuggestions] = useState<string[]>([]);
+
+  const CITATION_THRESHOLD = 0.5; // Configurable threshold for citation assistance
 
   // Mock humanize function (replace with actual API call)
   const handleHumanize = () => {
@@ -45,10 +57,23 @@ const Index = () => {
     setSimilarityScore(mockScore);
 
     if (mockScore > 0.3) {
-      setMatchedSegments([
-        "This is a sample matched segment from source A",
-        "Another similar passage found in source B",
-      ]);
+      const segments: MatchedSegment[] = [
+        {
+          text: "This is a sample matched segment from source A",
+          citation: mockScore > CITATION_THRESHOLD ? {
+            mla: 'Smith, John. "Research Methods in Modern Technology." Journal of Digital Studies, vol. 15, no. 3, 2023, pp. 45-67.',
+            apa: 'Smith, J. (2023). Research methods in modern technology. Journal of Digital Studies, 15(3), 45-67.'
+          } : undefined
+        },
+        {
+          text: "Another similar passage found in source B",
+          citation: mockScore > CITATION_THRESHOLD ? {
+            mla: 'Johnson, Emily. Understanding AI Systems. Tech Press, 2024.',
+            apa: 'Johnson, E. (2024). Understanding AI systems. Tech Press.'
+          } : undefined
+        },
+      ];
+      setMatchedSegments(segments);
     } else {
       setMatchedSegments([]);
     }
